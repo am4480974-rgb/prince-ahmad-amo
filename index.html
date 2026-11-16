@@ -1,0 +1,266 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#08090f">
+<title>PRINCE AHMAD (AMO)</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#08090f;color:white;
+ font-family:Arial,sans-serif;
+}
+header{
+ padding:20px;background:#10121c;
+ display:flex;justify-content:space-between;
+ align-items:center;border-bottom:1px solid #b58b35;
+}
+.logo{color:#e8bd54;font-size:19px;font-weight:bold}
+nav{display:flex;gap:9px;flex-wrap:wrap}
+button{
+ background:#b58b35;color:#08090f;
+ border:0;padding:11px 15px;
+ border-radius:8px;font-weight:bold;cursor:pointer
+}
+.hero{
+ padding:65px 20px;text-align:center;
+ background:linear-gradient(135deg,#101b40,#08090f 65%,#36260d);
+}
+.crown{font-size:48px}
+.hero h1{font-size:34px;color:#f0c75e}
+.hero p{color:#ddd;line-height:1.6}
+h2{color:#edc35a}
+section{padding:25px 18px}
+.tabs{display:flex;gap:10px;flex-wrap:wrap}
+.tabs button{background:#242631;color:white}
+.tabs button.active{background:#c39a43;color:black}
+.gallery{
+ display:grid;grid-template-columns:repeat(2,1fr);
+ gap:12px;margin-top:20px
+}
+.item{
+ background:#171923;border:1px solid #36313a;
+ border-radius:12px;padding:13px;
+ overflow:hidden
+}
+.item img{width:100%;height:130px;object-fit:cover;border-radius:8px}
+.item h3{font-size:15px;overflow-wrap:anywhere}
+.item p{color:#aaa;font-size:12px}
+audio,video{width:100%;margin-top:10px}
+input,textarea{
+ display:block;width:100%;padding:13px;
+ margin:10px 0;background:#171923;
+ border:1px solid #555;color:white;border-radius:8px
+}
+#adminPanel{display:none;background:#151722;padding:20px}
+.notice{color:#e9c46a;font-size:13px}
+footer{
+ padding:30px;text-align:center;
+ background:#11131c;color:#aaa;
+ border-top:1px solid #b58b35
+}
+@media(min-width:700px){
+ .gallery{grid-template-columns:repeat(4,1fr)}
+ .hero{padding:100px 20px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+ <div class="logo">👑 PRINCE AHMAD</div>
+ <nav>
+  <button onclick="showSection('home')">Home</button>
+  <button onclick="showSection('gallery')">Gallery</button>
+  <button onclick="showSection('adminPanel')">Admin</button>
+ </nav>
+</header>
+
+<main id="home">
+ <div class="hero">
+  <div class="crown">👑</div>
+  <h1>PRINCE AHMAD (AMO)</h1>
+  <p>Welcome to my official Complete Media App.</p>
+  <p>Audio • Music • Videos • Photography</p>
+  <button onclick="showSection('gallery')">EXPLORE MEDIA</button>
+ </div>
+
+ <section>
+  <h2>Welcome to My Studio</h2>
+  <p>Discover music, videos, photographs and creative media from PRINCE AHMAD (AMO).</p>
+ </section>
+</main>
+
+<section id="gallery">
+ <h2>MEDIA GALLERY</h2>
+ <div class="tabs">
+  <button class="active" onclick="loadMedia('all',this)">All</button>
+  <button onclick="loadMedia('audio',this)">Audio</button>
+  <button onclick="loadMedia('video',this)">Videos</button>
+  <button onclick="loadMedia('photo',this)">Photos</button>
+ </div>
+ <div id="mediaList" class="gallery">
+  <p class="notice">Connect your Supabase project to display your media.</p>
+ </div>
+</section>
+
+<section id="adminPanel">
+ <h2>ADMIN DASHBOARD</h2>
+ <div id="loginArea">
+  <p>Admin Login</p>
+  <input id="email" type="email" placeholder="Admin email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">LOGIN</button>
+ </div>
+
+ <div id="uploadArea" style="display:none">
+  <h3>Upload New Media</h3>
+  <input id="mediaTitle" placeholder="Media title">
+  <textarea id="mediaDescription" placeholder="Description"></textarea>
+  <select id="mediaType">
+   <option value="audio">Audio</option>
+   <option value="video">Video</option>
+   <option value="photo">Photo</option>
+  </select>
+  <input id="mediaFile" type="file">
+  <button onclick="uploadMedia()">UPLOAD MEDIA</button>
+  <p id="uploadStatus" class="notice"></p>
+  <button onclick="logout()">LOG OUT</button>
+ </div>
+</section>
+
+<footer>
+ <h3 style="color:#e8bd54">PRINCE AHMAD (AMO)</h3>
+ <p>Official Media & Creative Studio</p>
+ <p>© 2026 PRINCE AHMAD. All Rights Reserved.</p>
+</footer>
+
+<script>
+// ADD YOUR SUPABASE PROJECT DETAILS LATER
+const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_KEY = "YOUR_SUPABASE_PUBLISHABLE_KEY";
+
+let db = null;
+if(SUPABASE_URL.startsWith("https://") &&
+   SUPABASE_KEY !== "YOUR_SUPABASE_PUBLISHABLE_KEY"){
+ db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+}
+
+function showSection(id){
+ document.querySelectorAll("main,section").forEach(el=>{
+  if(el.id==="home" || el.id==="gallery" || el.id==="adminPanel"){
+   el.style.display="none";
+  }
+ });
+ document.getElementById(id).style.display="block";
+ window.scrollTo(0,0);
+}
+
+showSection("home");
+
+async function loadMedia(type,btn){
+ if(btn){
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+ }
+ const list=document.getElementById("mediaList");
+ if(!db){
+  list.textContent="Connect Supabase to load your gallery.";
+  return;
+ }
+ list.textContent="Loading media...";
+ let query=db.from("media_items").select("*").eq("published",true).order("created_at",{ascending:false});
+ if(type!=="all") query=query.eq("media_type",type);
+ const {data,error}=await query;
+ if(error){list.textContent="Unable to load media.";return;}
+ list.replaceChildren();
+ if(!data.length){list.textContent="No media uploaded yet.";return;}
+ data.forEach(item=>{
+  const card=document.createElement("article");
+  card.className="item";
+  const title=document.createElement("h3");
+  title.textContent=item.title;
+  card.append(title);
+  const desc=document.createElement("p");
+  desc.textContent=item.description||"PRINCE AHMAD (AMO)";
+  card.append(desc);
+  if(item.media_type==="audio"){
+   const player=document.createElement("audio");
+   player.controls=true;player.src=item.file_url;card.append(player);
+  }else if(item.media_type==="video"){
+   const player=document.createElement("video");
+   player.controls=true;player.src=item.file_url;card.append(player);
+  }else{
+   const img=document.createElement("img");
+   img.src=item.file_url;img.alt=item.title;card.append(img);
+  }
+  list.append(card);
+ });
+}
+
+async function login(){
+ if(!db){alert("Supabase connection is not configured yet.");return;}
+ const {data,error}=await db.auth.signInWithPassword({
+  email:document.getElementById("email").value,
+  password:document.getElementById("password").value
+ });
+ if(error){alert("Login failed. Check your email and password.");return;}
+ const {data:admin}=await db.from("admin_users")
+  .select("user_id").eq("user_id",data.user.id).maybeSingle();
+ if(!admin){
+  await db.auth.signOut();
+  alert("This account is not an authorized admin.");
+  return;
+ }
+ document.getElementById("loginArea").style.display="none";
+ document.getElementById("uploadArea").style.display="block";
+ alert("Welcome Admin!");
+}
+
+async function logout(){
+ if(db) await db.auth.signOut();
+ document.getElementById("loginArea").style.display="block";
+ document.getElementById("uploadArea").style.display="none";
+}
+
+async function uploadMedia(){
+ if(!db){alert("Connect Supabase first.");return;}
+ const file=document.getElementById("mediaFile").files[0];
+ const title=document.getElementById("mediaTitle").value.trim();
+ const type=document.getElementById("mediaType").value;
+ const status=document.getElementById("uploadStatus");
+ if(!file||!title){alert("Enter a title and choose a file.");return;}
+ if(file.size>50*1024*1024){alert("File must be below 50 MB.");return;}
+ status.textContent="Uploading...";
+ const user=(await db.auth.getUser()).data.user;
+ if(!user){status.textContent="Please log in again.";return;}
+ const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+ const path=crypto.randomUUID()+"-"+safeName;
+ const {error:uploadError}=await db.storage.from("amo-media").upload(path,file);
+ if(uploadError){status.textContent=uploadError.message;return;}
+ const {data:urlData}=db.storage.from("amo-media").getPublicUrl(path);
+ const {error}=await db.from("media_items").insert({
+  title:title,
+  description:document.getElementById("mediaDescription").value,
+  media_type:type,
+  file_url:urlData.publicUrl,
+  published:true,
+  created_by:user.id
+ });
+ if(error){status.textContent=error.message;return;}
+ status.textContent="Upload successful!";
+ document.getElementById("mediaTitle").value="";
+ document.getElementById("mediaDescription").value="";
+ document.getElementById("mediaFile").value="";
+ loadMedia("all");
+}
+</script>
+</body>
+  </html>
+    
